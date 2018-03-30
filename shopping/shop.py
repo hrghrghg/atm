@@ -4,7 +4,7 @@
 import os,sys,json
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
-
+from atm import atm
 goods_list = {
     "1":{"icar":280000},
     "2":{"ipad":6888},
@@ -33,8 +33,8 @@ def showcar(data):
             print("商品名：%-10s  价格：%s元" % (j, i[j]))
             sum += i[j]
     print("\t\t\t\t合计：%s元" % sum)
-
-def auth(data):   #购物车装饰器，实现认证用户功能
+    return int(sum)
+def auth(data):   #购物车装饰器，实现认证用户功能，记录登录状态，重复购物不用再次输入账号
         def out_wrapper(func):
             def wrapper(*args,**kwargs):
                 if curr_user == '':  # "判断是否已经登录"
@@ -67,10 +67,10 @@ def man_shop():
             if curr_user:print("加入购物车成功")
             step = input("继续购物按1，去购物车结算按2:")
             if step == "2":
-                showcar(goods)
+                bill = showcar(goods)
                 step2 = input("继续结算按1，取消按2：")
-                if step2 == "2":
-                    pass
+                if step2 == "1":
+                    atm.api_payment(curr_user,bill)
                     break
         elif choise == 'q':break
         else:
