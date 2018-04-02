@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author aliex-hrg.json
-import os,sys,json
+import os,sys,json,time
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
 from atm import atm
@@ -40,23 +40,29 @@ def auth(data):   #购物车装饰器，实现认证用户功能，记录登录�
                 if curr_user == '':  # "判断是否已经登录"
                     username = input("Enter you username:").strip()
                     passwd = input("Enter you password:").strip()
-                    with open(BASE_DIR + '/accounts/userlist.json','r',encoding='utf8') as f:  #首先从用户列表中查找是否存在该用户
-                        if username in f.read():
-                            with open(BASE_DIR + '/accounts/'+username+'.json', 'r') as f:
-                                user = json.loads(f.read())
-                            if username == user["username"] and passwd == user["password"]:
-                                func(*args, **kwargs)
-                                return username  #返回登录用户
-                            else:print("password is wrong,exit");exit(2)
-                        else:print("user is not exest,exit");exit(1)
+                    if os.path.isfile(BASE_DIR + '/accounts/'+username+'.json'):  #首先从用户列表中查找是否存在该用户
+                        with open(BASE_DIR + '/accounts/'+username+'.json', 'r') as f:
+                            user = json.loads(f.read())
+                        if username == user["username"] and passwd == user["password"]:
+                            func(*args, **kwargs)
+                            return username  #返回登录用户
+                        else:print("password is wrong,exit");exit(2)
+                    else:print("user is not exest,exit");exit(1)
                 else:
                     func(*args, **kwargs)
+                    return curr_user  # 返回登录用户
             return wrapper
         return out_wrapper
 
 @auth(curr_user)
 def shopcar(name):
     goods.append(name)
+def writelog(filename,lines):  #filename为要记录的文件名，lines为货物列表
+    with open(filename,'a',encoding='utf8') as f:
+        curr_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+        for i in lines:
+            for j in i:
+                f.write("%s 购买：%-10s  价格：%s元\n" % (curr_time,j, i[j]))
 def man_shop():
     while True:
         print_goodslist()
@@ -70,7 +76,10 @@ def man_shop():
                 bill = showcar(goods)
                 step2 = input("继续结算按1，取消按2：")
                 if step2 == "1":
-                    atm.api_payment(curr_user,bill)
+                    k = atm.api_payment(curr_user,bill) #调用atm接口扣款
+                    if k != "fail":
+                        writelog(BASE_DIR+'\\logs\\'+curr_user+'.log',goods) #记录购物清单日志
+                        goods.clear()  #结账成功清空购物车
                     break
         elif choise == 'q':break
         else:

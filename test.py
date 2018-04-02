@@ -2,20 +2,14 @@
 # -*- coding: utf-8 -*-
 # author aliex-hrg.json
 
-import json
+import json,os,time
 a = {
     "username":"hrg.json",
     "password":'123',
     "balance":1000000,
 }
-a=9
-def test():
 
-    global a
-    a=10
-    print(a)
+b = [{"a":1},{"b":2}]
 
-test()
-print(a)
-print("ikk")
-
+for i in b:
+    print(b.pop())
