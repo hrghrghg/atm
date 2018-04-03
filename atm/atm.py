@@ -10,8 +10,9 @@ atm_menu_show = [
     "3.注销",
     "4.转账",
     "5.提现",
-    "6.冻结余额",
-    "7.每月还款"
+    "6.冻结解冻",
+    "7.每月还款",
+    "8.打印账单"
 ]
 def select():
     user = input("请输入要查询的用户>>:")
@@ -53,10 +54,18 @@ def transfer():
     fromusername = input("请输入转账人用户名：").strip()
     passwd = input("请输入转账人密码：").strip()
     fromuser = getuserinfo(fromusername)
+    if fromuser["frozon"]:
+        print("%s用户已经被冻结"%fromusername)
+        writeatmlog("%s用户已经被冻结,不支持转出"%fromusername)
+        return "fail"
     if passwd == fromuser["password"]:
         print("登录成功，%s，欢迎你" %fromusername)
         tousername = input("请输入转入方账号：").strip()
         touser = getuserinfo(tousername)
+        if touser["frozon"]:
+            print("%s用户已经被冻结" %tousername)
+            writeatmlog("%s用户已经被冻结,不支持转入" %tousername)
+            return "fail"
         tonum = int(input("请输入转入金额："))
         if fromuser["balance"] - tonum < - fromuser["limit"]:
             print("你的信用额度不够，少转点。")
@@ -76,6 +85,10 @@ def withdraw():
     username = input("请输入用户名：").strip()
     passwd = input("请输入密码：").strip()
     fromuser = getuserinfo(username)
+    if fromuser["frozon"]:
+        print("%s用户已经被冻结"%username)
+        writeatmlog("%s用户已经被冻结,不支持提现"%username)
+        return "fail"
     if passwd == fromuser["password"]:
         print("登录成功，%s，欢迎你" %username)
         bill = int(input("请输入提现金额："))
@@ -88,16 +101,57 @@ def withdraw():
             writeatmlog("%s提现%s元成功" %(username,bill))
             print("提现成功")
 def frozen():
-    pass
+    print("\t\t冻结系统")
+    username = input("请输入要操作的用户名：").strip()
+    act = input("冻结按1，解冻按2").strip()
+    fromuser = getuserinfo(username)
+    if act == "1":
+        fromuser["frozon"] = True
+        log = "冻结%s用户成功" %username
+    elif act == "2":
+        fromuser["frozon"] = False
+        log = "解冻%s用户成功" %username
+    else:
+        print("输入有误")
+        return "fail"
+    changeuserinfo(username,fromuser)
+    print(log)
+    writeatmlog(log)
 def repayment():
-    pass
-
+    print("\t\t还款系统")
+    username = input("请输入用户名：").strip()
+    passwd = input("请输入密码：").strip()
+    fromuser = getuserinfo(username)
+    if passwd == fromuser["password"]:
+        print("登录成功，%s，欢迎你" %username)
+        balance = fromuser["balance"]
+        if balance > 0:
+            print("你目前的余额为%s元,不需要还款" %balance)
+            return "do not repayment"
+        else:
+            print("你目前的余额为%s元,需要还款%s元" %(balance,abs(balance)))
+        bill = int(input("请输入要还款的金额："))
+        fromuser["balance"] = fromuser["balance"] + bill
+        changeuserinfo(username,fromuser)
+        writeatmlog("%s还款%s元成功" %(username,bill))
+        print("还款成功")
+def printbill():
+    print("\t\t打印账单系统")
+    username = input("请输入用户名：").strip()
+    passwd = input("请输入密码：").strip()
+    fromuser = getuserinfo(username)
+    if passwd == fromuser["password"]:
+        print("登录成功，%s，欢迎你" %username)
+    with open(BASE_DIR+'/logs/'+username+'.log','r',encoding='utf8') as f:
+        for i in f:
+            print(i)
 
 def api_payment(user,num):  #让购物车调用的扣款接口，参数扣款的用户和扣款金额
     info = getuserinfo(user)
     if info["frozon"]:
         print("%s用户已经被冻结"%user)
-        return ""
+        writeatmlog("%s用户已经被冻结,支付失败"%user)
+        return "fail"
     if info["balance"] - int(num) < - info["limit"]:
         print("超过信用卡透支额度，无法购买")
         writeatmlog("%s购物支付失败" %user)
@@ -129,7 +183,8 @@ atm_menu = {
     "4":transfer,
     "5":withdraw,
     "6":frozen,
-    "7":repayment
+    "7":repayment,
+    "8":printbill
 }
 
 def man_atm():
