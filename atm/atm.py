@@ -7,10 +7,11 @@ sys.path.append(BASE_DIR)
 atm_menu_show = [
     "1.查询",
     "2.添加",
-    "3.删除",
-    "4.设置额度",
-    "5.冻结余额",
-    "6.每月还款"
+    "3.注销",
+    "4.转账",
+    "5.提现",
+    "6.冻结余额",
+    "7.每月还款"
 ]
 def select():
     user = input("请输入要查询的用户>>:")
@@ -27,7 +28,7 @@ def add():
         passwd = input("请输入密码：")
         balance = int(input("请输入存款金额："))
         limit = int(input("请设置信用额度："))
-        info = {'username':username,'password':passwd,'balance':balance,'limit':limit}
+        info = {'username':username,'password':passwd,'balance':balance,'limit':limit,'frozon':False}
         changeuserinfo(username,info)
         log = "添加用户"+username
     else:
@@ -35,9 +36,57 @@ def add():
         log = "添加用户失败，用户已经存在"
     writeatmlog(log)
 def remove():
-    pass
-def setbalance():
-    pass
+    username = input("请输入你要注销的用户：").strip()
+    if os.path.isfile(BASE_DIR+'/accounts/'+username+'.json'):
+        os.remove(BASE_DIR+'/accounts/'+username+'.json')
+        print("注销用户%s成功" %username)
+        writeatmlog("注销用户%s成功" %username)
+    else:
+        print("你输入的用户不存在")
+        writeatmlog("你输入的用户%s不存在" %username)
+    if os.path.isfile(BASE_DIR + '/logs/' + username + '.log'):
+        os.remove(BASE_DIR + '/logs/' + username + '.log')
+        print("删除用户%s的日志成功" %username)
+        writeatmlog("删除用户%s的日志成功" %username)
+def transfer():
+    print("\t\t转账系统")
+    fromusername = input("请输入转账人用户名：").strip()
+    passwd = input("请输入转账人密码：").strip()
+    fromuser = getuserinfo(fromusername)
+    if passwd == fromuser["password"]:
+        print("登录成功，%s，欢迎你" %fromusername)
+        tousername = input("请输入转入方账号：").strip()
+        touser = getuserinfo(tousername)
+        tonum = int(input("请输入转入金额："))
+        if fromuser["balance"] - tonum < - fromuser["limit"]:
+            print("你的信用额度不够，少转点。")
+            writeatmlog("%s转账给%s失败，可用额度不够" %(fromusername,tousername))
+            return "fail"
+        else:
+            fromuser["balance"] -= tonum
+            touser["balance"] += tonum
+            changeuserinfo(tousername,touser)
+            changeuserinfo(fromusername,fromuser)
+            writeatmlog("%s用户转账给%s用户%s元成功" %(fromusername,tousername,tonum))
+            print("转入成功")
+    else:
+        print("密码不对")
+def withdraw():
+    print("\t\t提现系统")
+    username = input("请输入用户名：").strip()
+    passwd = input("请输入密码：").strip()
+    fromuser = getuserinfo(username)
+    if passwd == fromuser["password"]:
+        print("登录成功，%s，欢迎你" %username)
+        bill = int(input("请输入提现金额："))
+        if fromuser["balance"] - bill < - fromuser["limit"]:
+            print("你的提现额度超过信用额度了。")
+            writeatmlog("%s提现%s元失败，可用额度不够" %(username,bill))
+        else:
+            fromuser["balance"] = fromuser["balance"] - bill - bill*5/100
+            changeuserinfo(username,fromuser)
+            writeatmlog("%s提现%s元成功" %(username,bill))
+            print("提现成功")
 def frozen():
     pass
 def repayment():
@@ -46,6 +95,9 @@ def repayment():
 
 def api_payment(user,num):  #让购物车调用的扣款接口，参数扣款的用户和扣款金额
     info = getuserinfo(user)
+    if info["frozon"]:
+        print("%s用户已经被冻结"%user)
+        return ""
     if info["balance"] - int(num) < - info["limit"]:
         print("超过信用卡透支额度，无法购买")
         writeatmlog("%s购物支付失败" %user)
@@ -74,9 +126,10 @@ atm_menu = {
     "1":select,
     "2":add,
     "3":remove,
-    "4":setbalance,
-    "5":frozen,
-    "6":repayment
+    "4":transfer,
+    "5":withdraw,
+    "6":frozen,
+    "7":repayment
 }
 
 def man_atm():
