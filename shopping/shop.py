@@ -66,22 +66,26 @@ def writelog(filename,lines):  #filename为要记录的文件名，lines为货�
 def man_shop():
     while True:
         print_goodslist()
-        choise = input("请选择你要购买的商品号（按q退出）：").strip()
+        choise = input("请选择你要购买的商品号（按q返回上一层,c查看购物车）：").strip()
         if choise and choise in goods_list:
             global curr_user #定义为全局变量，目的用户输入一次账号就记住了
             curr_user = shopcar(goods_list[choise])
             if curr_user:print("加入购物车成功")
-            step = input("继续购物按1，去购物车结算按2:")
-            if step == "2":
-                bill = showcar(goods)
-                step2 = input("继续结算按1，取消按2：")
-                if step2 == "1":
-                    k = atm.api_payment(curr_user,bill) #调用atm接口扣款
-                    if k != "fail":
-                        writelog(BASE_DIR+'\\logs\\'+curr_user+'.log',goods) #记录购物清单日志
-                        goods.clear()  #结账成功清空购物车
-                    break
         elif choise == 'q':break
+        elif choise == 'c':
+            bill = showcar(goods)
+            step2 = input("结算按1，取消按2：")
+            if step2 == "1":
+                if curr_user != '':  #判断购物车为空时，第一次没有用户登录
+                    k = atm.api_payment(curr_user, bill)  # 调用atm接口扣款
+                    if k != "fail":
+                        writelog(BASE_DIR + '/logs/' + curr_user + '.log', goods)  # 记录购物清单日志
+                        with open(BASE_DIR + '/logs/' + curr_user + '.log','a',encoding='utf8') as f:
+                            f.write("\t\t\t\t\t你目前的余额：%s\n" %k)
+                        goods.clear()  # 结账成功清空购物车
+                    break
+                else:
+                    print("购物车为空，请购买商品后再结算。")
         else:
             print("你选择的商品不存在，请重新选择:")
 
