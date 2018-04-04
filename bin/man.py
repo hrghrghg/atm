@@ -7,7 +7,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
 from atm import atm
 from shopping import shop
-
 while True:
     print("ATM + 购物车功能小程序")
     print("\t1.逛商场")

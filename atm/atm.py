@@ -142,10 +142,13 @@ def printbill():
     fromuser = getuserinfo(username)
     if passwd == fromuser["password"]:
         print("登录成功，%s，欢迎你" %username)
+    date1 = input("输入打印账单开始日期,格式:2018-04-03 12:00:00>>>:")
+    date2 = input("输入打印账单结束日期,格式:2018-04-03 20:00:00>>>:")
     with open(BASE_DIR+'/logs/'+username+'.log','r',encoding='utf8') as f:
         for i in f:
-            print(i)
-
+            if i[:19] >= date1 and i[:19] < date2:
+                print(i.strip())
+    writeatmlog("打印用户%s的账单%s到%s" %(username,date1,date2))
 def api_payment(user,num):  #让购物车调用的扣款接口，参数扣款的用户和扣款金额
     info = getuserinfo(user)
     if info["frozon"]:
